@@ -1,76 +1,89 @@
-import { useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as Yup from 'yup';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { Button, TextField, Typography } from "@mui/material";
+import { DivWrapper } from "styles/global.styles";
+import PhoneInput from "react-phone-input-2";
+import { sendSMS, generatePassCode } from "lib";
+import "react-phone-input-2/lib/material.css";
 
-import { userService } from 'services';
+import { userService } from "services";
 
 export default Login;
 
 function Login() {
-    const router = useRouter();
+  const router = useRouter();
+  const [phone, setPhone] = useState("");
+  const [passCode, setPassCode] = useState("");
+  const [showPassCode, setShowPassCode] = useState(false);
+  const [error, setError] = useState("");
 
-    useEffect(() => {
-        // redirect to home if already logged in
-        if (userService.userValue) {
-            router.push('/');
-        }
-    }, []);
+  useEffect(() => {
+    // redirect to home if already logged in
+    if (userService.userValue) {
+      router.push("/");
+    }
+  }, []);
 
-    // form validation rules 
-    const validationSchema = Yup.object().shape({
-        username: Yup.string().required('Username is required'),
-        password: Yup.string().required('Password is required')
-    });
-    const formOptions = { resolver: yupResolver(validationSchema) };
+  const onSubmit = (e) => {
+    e.preventDefault();
+    const code = generatePassCode();
+    sendSMS(phone, `Use pass code ${code} to verify your phone number.`);
+    return userService.updatePassCode(phone, code)
+      .then(() => {
+        setShowPassCode(true);
+      })
+      .catch((error) => {
+        setError("apiError", { message: error });
+      });
+  };
 
-    // get functions to build form with useForm() hook
-    const { register, handleSubmit, setError, formState } = useForm(formOptions);
-    const { errors } = formState;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const res = await userService.login(phone, passCode);
 
-    function onSubmit({ username, password }) {
-        return userService.login(username, password)
-            .then(() => {
-                // get return url from query parameters or default to '/'
-                const returnUrl = router.query.returnUrl || '/';
-                router.push(returnUrl);
-            })
-            .catch(error => {
-                setError('apiError', { message: error });
-            });
+    if (res) {
+      await userService.updatePassCode(phone, 0);
+      const returnUrl = router.query.returnUrl || "/";
+      router.push(returnUrl);
     }
 
-    return (
-        <div className="col-md-6 offset-md-3 mt-5">
-            <div className="alert alert-info">
-                Username: test<br />
-                Password: test
-            </div>
-            <div className="card">
-                <h4 className="card-header">Next.js JWT Login Example</h4>
-                <div className="card-body">
-                    <form onSubmit={handleSubmit(onSubmit)}>
-                        <div className="form-group">
-                            <label>Username</label>
-                            <input name="username" type="text" {...register('username')} className={`form-control ${errors.username ? 'is-invalid' : ''}`} />
-                            <div className="invalid-feedback">{errors.username?.message}</div>
-                        </div>
-                        <div className="form-group">
-                            <label>Password</label>
-                            <input name="password" type="password" {...register('password')} className={`form-control ${errors.password ? 'is-invalid' : ''}`} />
-                            <div className="invalid-feedback">{errors.password?.message}</div>
-                        </div>
-                        <button disabled={formState.isSubmitting} className="btn btn-primary">
-                            {formState.isSubmitting && <span className="spinner-border spinner-border-sm mr-1"></span>}
-                            Login
-                        </button>
-                        {errors.apiError &&
-                            <div className="alert alert-danger mt-3 mb-0">{errors.apiError?.message}</div>
-                        }
-                    </form>
-                </div>
-            </div>
-        </div>
-    );
+    setError("apiError", { message: error });
+  };
+
+  return (
+    <DivWrapper maxWidth="sm">
+      <Typography variant="h4" component="h4" gutterBottom>Login</Typography>
+      {error && <Typography variant="h6" component="h6" gutterBottom>{error}</Typography>}
+      <form onSubmit={onSubmit}>
+        <PhoneInput
+          country={"us"}
+          containerStyle={{ width: "100%", marginBottom: '1em' }}
+          inputStyle={{ width: "100%" }}
+          name="phone"
+          value={phone}
+          onChange={(value) => setPhone(value)}
+        />
+        <Button type="submit" variant="contained" color="primary">
+          Submit
+        </Button>
+      </form>
+      {showPassCode && (
+        <form onSubmit={handleSubmit}>
+          <TextField
+            type="text"
+            name="passCode"
+            value={passCode}
+            onChange={(e) => setPassCode(e.target.value)}
+            fullWidth
+            size="small"
+            label="Pass Code"
+            margin="normal"
+          />
+          <Button type="submit" variant="contained" color="primary">
+            Sign In
+          </Button>
+        </form>
+      )}
+    </DivWrapper>
+  );
 }

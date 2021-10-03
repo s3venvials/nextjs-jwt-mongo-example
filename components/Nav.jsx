@@ -1,31 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import { AppBar, Toolbar, Button, Typography } from "@mui/material";
+import { NavLink } from ".";
+import { userService } from "services";
 
-import { NavLink } from '.';
-import { userService } from 'services';
+const Nav = () => {
+  const router = useRouter();
+  const [user, setUser] = useState(null);
 
-export { Nav };
+  useEffect(() => {
+    const subscription = userService.user.subscribe((x) => setUser(x));
+    return () => subscription.unsubscribe();
+  }, []);
 
-function Nav() {
-    const [user, setUser] = useState(null);
+  function logout() {
+    userService.logout();
+  }
 
-    useEffect(() => {
-        const subscription = userService.user.subscribe(x => setUser(x));
-        return () => subscription.unsubscribe();
-    }, []);
+  return (
+    <AppBar>
+      <Toolbar>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          My App
+        </Typography>
+        {user && (
+          <>
+            <Typography>{`Welcome, ${user.user[0].firstName} ${user.user[0].lastName}`}</Typography>
+            <Button onClick={logout} color="inherit">
+              Logout
+            </Button>
+          </>
+        )}
+      </Toolbar>
+    </AppBar>
+  );
+};
 
-    function logout() {
-        userService.logout();
-    }
-
-    // only show nav when logged in
-    if (!user) return null;
-    
-    return (
-        <nav className="navbar navbar-expand navbar-dark bg-dark">
-            <div className="navbar-nav">
-                <NavLink href="/" exact className="nav-item nav-link">Home</NavLink>
-                <a onClick={logout} className="nav-item nav-link">Logout</a>
-            </div>
-        </nav>
-    );
-}
+export default Nav;
