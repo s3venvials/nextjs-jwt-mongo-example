@@ -20,9 +20,14 @@ const Nav = () => {
   return (
     <AppBar>
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" component="div" onClick={() => router.push('/')} sx={{ flexGrow: 1 }}>
           My App
         </Typography>
+        {!user && (
+          <Button onClick={() => router.push("/login")} color="inherit">
+            LogIn
+          </Button>
+        )}
         {user && (
           <>
             <Typography>{`Welcome, ${user.user[0].firstName} ${user.user[0].lastName}`}</Typography>

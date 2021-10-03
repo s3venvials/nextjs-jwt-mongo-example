@@ -5,6 +5,6 @@ export const DivWrapper = styled(Container)(({ theme }) => ({
     marginTop: theme.spacing(20),
     height: "100vh",
     [theme.breakpoints.down("sm")]: {
-    marginTop: theme.spacing(5),
+    marginTop: theme.spacing(10),
     },
 }));

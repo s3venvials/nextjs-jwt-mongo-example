@@ -19,7 +19,15 @@ export const userService = {
   logout,
   getAll,
   updatePassCode,
+  signUp,
+  getCurrentUser,
 };
+
+function signUp(user) {
+  return fetchWrapper.post(`${baseUrl}/signUp`, { user }).then((res) => {
+    return res;
+  });
+}
 
 function updatePassCode(phone, passCode) {
   return fetchWrapper
@@ -44,7 +52,17 @@ function logout() {
   // remove user from local storage, publish null to user subscribers and redirect to login page
   sessionStorage.removeItem("user");
   userSubject.next(null);
-  Router.push("/login");
+  Router.push("/");
+}
+
+function getCurrentUser() {
+  let user;
+  try {
+    user = JSON.parse(sessionStorage.getItem("user"));
+  } catch {
+    user = null;
+  }
+  return user;
 }
 
 function getAll() {
